@@ -1,0 +1,20 @@
+# Data files (Ignore everything except our gitkeep placeholders)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/output/*
+!data/output/.gitkeep
+
+# Block massive build extensions
+*.parquet
+*.csv
+*.log
+
+# Scala/SBT specific build outputs
+target/
+project/target/
+project/project/
+.bsp/
+.metals/
+.VSCode/
