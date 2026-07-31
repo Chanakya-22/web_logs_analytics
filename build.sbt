@@ -14,3 +14,11 @@ libraryDependencies ++= Seq(
 
 // Prevent memory fragmentation during parallel test compilation
 fork := true
+
+// Bypass Java 17 Strong Encapsulation for Spark Memory Management
+javaOptions ++= Seq(
+  "--add-opens=java.base/java.nio=ALL-UNNAMED",
+  "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
+  "--add-opens=java.base/java.lang=ALL-UNNAMED",
+  "--add-opens=java.base/java.util=ALL-UNNAMED"
+)
