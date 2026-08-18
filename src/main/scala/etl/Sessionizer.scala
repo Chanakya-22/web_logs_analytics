@@ -4,6 +4,7 @@ import config.SparkConfig
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.types._
+import java.io.{File, PrintWriter}
 
 object Sessionizer {
 
@@ -70,6 +71,17 @@ object Sessionizer {
 
     // Display the top analytics results
     sessionMetricsDF.show(20, truncate = false)
+
+    // 4. Export processed dataset locally via standard Java I/O to bypass Windows Hadoop committers
+    println("\n[INFO] Exporting processed dataset locally...")
+    val results = sessionMetricsDF.limit(500).collect()
+    val pw = new PrintWriter(new File("data/processed/session_summary.csv"))
+    pw.write("user_id,user_session,session_duration_mins,event_count,purchase_count\n")
+    results.foreach { row =>
+      pw.write(s"${row.getString(0)},${row.getString(1)},${row.getDouble(2)},${row.getLong(3)},${row.getLong(4)}\n")
+    }
+    pw.close()
+    println("[INFO] Local export complete: data/processed/session_summary.csv")
 
     println("[SUCCESS] Full-Scale Analytics Phase Complete.")
     spark.stop()
