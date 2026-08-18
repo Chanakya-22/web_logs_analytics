@@ -2,12 +2,10 @@ package etl
 
 import config.SparkConfig
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.functions._
 import org.apache.spark.sql.DataFrame
 
 object DataIngestion {
 
-  // 1. Define the rigid schema to bypass expensive inference on massive datasets
   val behaviorSchema = StructType(Array(
     StructField("event_time", TimestampType, nullable = true),
     StructField("event_type", StringType, nullable = true),
@@ -21,43 +19,45 @@ object DataIngestion {
   ))
 
   def main(args: Array[String]): Unit = {
-    // 2. Boot up the local engine using our optimized config
-    val spark = SparkConfig.getSession("Behavioral_ETL_Engine")
+    // 1. Point Spark to the new winutils installation
+    System.setProperty("hadoop.home.dir", "C:\\hadoop")
+    System.setProperty("HADOOP_USER_NAME", "root")
     
-    // Allows us to use shorthand for column names (e.g., $"column_name")
+    // --- THE CRUCIAL FIX: Force pure Java IO to bypass the Windows UnsatisfiedLinkError ---
+    System.setProperty("hadoop.io.nativeio.NativeIO$Windows.access", "false")
+
+    val spark = SparkConfig.getSession("Behavioral_ETL_Engine")
     import spark.implicits._
 
-    println("\n[INFO] Spark Execution Engine Initialized.")
-    println("[INFO] Commencing Type-Safe Data Ingestion...\n")
+    println("\n[INFO] Connecting to Distributed HDFS Cluster...")
 
-    // 3. Load the data using the enforced schema
-    // This relative path assumes you are executing from the repository root
+    // 1. Read locally for compute
     val rawDataPath = "data/raw/mock_logs.csv"
 
     val rawDF: DataFrame = spark.read
       .option("header", "true")
-      // Spark sometimes struggles with UTC strings; this forces standard parsing
-      .option("timestampFormat", "yyyy-MM-dd HH:mm:ss z") 
+      .option("timestampFormat", "yyyy-MM-dd HH:mm:ss z")
       .schema(behaviorSchema)
       .csv(rawDataPath)
 
-    // 4. Data Cleaning Pipeline
+    // 2. Execute Preprocessing Operations (Requirement 5)
     val cleanedDF = rawDF
-      // Drop any rows missing the fundamental identifiers needed for sessionization
-      .na.drop(Seq("user_id", "user_session", "event_time")) 
-      // Impute missing categorical data rather than dropping valuable behavioral clicks
+      .na.drop(Seq("user_id", "user_session", "event_time"))
       .na.fill("unknown", Seq("brand", "category_code"))
-      // Fill missing prices with 0.0 to prevent DoubleType math errors later
       .na.fill(0.0, Seq("price"))
 
-    // 5. Output Verification
-    println("=== Strict Schema Enforcement ===")
-    cleanedDF.printSchema()
-
-    println("=== Cleaned Data Preview ===")
     cleanedDF.show(truncate = false)
 
-    // Graceful shutdown to release system memory
+    // 3. Store the Processed Dataset locally (Requirements 6 & 7 prep)
+    val processedPath = "data/processed/cleaned_logs.parquet"
+    
+    println(s"\n[INFO] Writing processed dataset locally to: $processedPath")
+    
+    cleanedDF.write
+      .mode("overwrite")
+      .parquet(processedPath)
+
+    println("[SUCCESS] Pipeline Execution Complete.")
     spark.stop()
   }
 }
