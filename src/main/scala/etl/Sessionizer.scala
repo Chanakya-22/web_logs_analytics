@@ -27,14 +27,14 @@ object Sessionizer {
     val spark = SparkConfig.getSession("Behavioral_Analytics_Sessionizer")
     import spark.implicits._
 
-    println("\n[INFO] Starting Sessionization Analytics...")
+    println("\n[INFO] Starting Sessionization Analytics across October & November Datasets...")
 
-    // 1. Read Raw Data directly (Bypassing the Windows disk issue)
+    // 1. Read both October and November CSV files explicitly to bypass Windows globbing
     val rawDF = spark.read
       .option("header", "true")
       .option("timestampFormat", "yyyy-MM-dd HH:mm:ss z")
       .schema(behaviorSchema)
-      .csv("data/raw/mock_logs.csv")
+      .csv("data/raw/2019-Oct.csv", "data/raw/2019-Nov.csv")
 
     // 2. Apply cleaning operations entirely in-memory
     val cleanedDF = rawDF
@@ -43,7 +43,7 @@ object Sessionizer {
       .na.fill(0.0, Seq("price"))
 
     // 3. Perform Analytics: Calculate Session Duration & Purchase Conversions
-    println("\n[INFO] Calculating Session Metrics...")
+    println("\n[INFO] Calculating Session Metrics at Full Scale...")
     
     // Create a window partitioned by each unique user session
     val sessionWindow = Window.partitionBy("user_session")
@@ -68,10 +68,10 @@ object Sessionizer {
       .distinct()
       .orderBy(desc("session_duration_mins"))
 
-    // Display the final analytics table
-    sessionMetricsDF.show(truncate = false)
+    // Display the top analytics results
+    sessionMetricsDF.show(20, truncate = false)
 
-    println("[SUCCESS] Analytics Phase Complete.")
+    println("[SUCCESS] Full-Scale Analytics Phase Complete.")
     spark.stop()
   }
 }
