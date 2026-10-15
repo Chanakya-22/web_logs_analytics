@@ -1,6 +1,7 @@
 package etl
 
 import config.SparkConfig
+import org.apache.spark.ml.clustering.KMeans
 import org.apache.spark.ml.feature.{StandardScaler, VectorAssembler}
 
 object ClusteringEngine {
@@ -35,6 +36,16 @@ object ClusteringEngine {
     val scaledDF = scalerModel.transform(assembledDF)
 
     scaledDF.show(5)
+
+    val kmeans = new KMeans()
+      .setK(4)
+      .setSeed(1L)
+      .setFeaturesCol("features")
+
+    val kmeansModel = kmeans.fit(scaledDF)
+    val predictions = kmeansModel.transform(scaledDF)
+
+    predictions.groupBy("prediction").count().show()
 
     spark.stop()
   }
