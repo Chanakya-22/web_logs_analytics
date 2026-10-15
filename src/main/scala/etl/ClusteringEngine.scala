@@ -2,6 +2,7 @@ package etl
 
 import config.SparkConfig
 import org.apache.spark.ml.clustering.KMeans
+import org.apache.spark.ml.evaluation.ClusteringEvaluator
 import org.apache.spark.ml.feature.{StandardScaler, VectorAssembler}
 
 object ClusteringEngine {
@@ -46,6 +47,12 @@ object ClusteringEngine {
     val predictions = kmeansModel.transform(scaledDF)
 
     predictions.groupBy("prediction").count().show()
+
+    val evaluator = new ClusteringEvaluator()
+      .setMetricName("silhouette")
+
+    val silhouetteScore = evaluator.evaluate(predictions)
+    println(s"Silhouette Score: $silhouetteScore")
 
     spark.stop()
   }
