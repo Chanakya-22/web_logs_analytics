@@ -1,6 +1,7 @@
 package etl
 
 import config.SparkConfig
+import java.io.{File, IOException, PrintWriter}
 import org.apache.spark.ml.clustering.KMeans
 import org.apache.spark.ml.evaluation.ClusteringEvaluator
 import org.apache.spark.ml.feature.{StandardScaler, VectorAssembler}
@@ -57,6 +58,34 @@ object ClusteringEngine {
 
     val silhouetteScore = evaluator.evaluate(predictions)
     println(s"Silhouette Score: $silhouetteScore")
+
+    val outputFile = new File("data/output/cohort_assignments.csv")
+    val writer = new PrintWriter(outputFile)
+    try {
+      writer.println("user_id,user_session,prediction")
+      predictions
+        .select("user_id", "user_session", "prediction")
+        .limit(1000)
+        .collect()
+        .foreach { row =>
+          val csvValues = row.toSeq.map {
+            case null => ""
+            case value =>
+              val text = value.toString
+              if (text.exists(char => char == ',' || char == '"' || char == '\n' || char == '\r')) {
+                "\"" + text.replace("\"", "\"\"") + "\""
+              } else {
+                text
+              }
+          }
+          writer.println(csvValues.mkString(","))
+        }
+    } finally {
+      writer.close()
+    }
+    if (writer.checkError()) {
+      throw new IOException(s"Failed to write cohort assignments to ${outputFile.getPath}")
+    }
 
     spark.stop()
   }
