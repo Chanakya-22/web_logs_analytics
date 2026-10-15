@@ -46,6 +46,10 @@ object ClusteringEngine {
     val kmeansModel = kmeans.fit(scaledDF)
     val predictions = kmeansModel.transform(scaledDF)
 
+    kmeansModel.clusterCenters.zipWithIndex.foreach { case (center, index) =>
+      println(s"Cluster center $index: ${center.toArray.mkString(", ")}")
+    }
+
     predictions.groupBy("prediction").count().show()
 
     val evaluator = new ClusteringEvaluator()
