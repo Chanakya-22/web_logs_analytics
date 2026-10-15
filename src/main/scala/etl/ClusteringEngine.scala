@@ -1,6 +1,7 @@
 package etl
 
 import config.SparkConfig
+import org.apache.spark.ml.feature.VectorAssembler
 
 object ClusteringEngine {
   def main(args: Array[String]): Unit = {
@@ -17,6 +18,12 @@ object ClusteringEngine {
     summaryDF.printSchema()
     summaryDF.show(5)
     // Data successfully loaded
+
+    val assembler = new VectorAssembler()
+      .setInputCols(Array("session_duration_mins", "event_count", "purchase_count"))
+      .setOutputCol("raw_features")
+
+    val assembledDF = assembler.transform(summaryDF)
 
     spark.stop()
   }
