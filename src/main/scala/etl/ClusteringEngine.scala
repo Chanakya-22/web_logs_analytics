@@ -16,6 +16,7 @@ object ClusteringEngine {
 
     summaryDF.printSchema()
     summaryDF.show(5)
+    // Data successfully loaded
 
     spark.stop()
   }
