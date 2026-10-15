@@ -1,7 +1,7 @@
 package etl
 
 import config.SparkConfig
-import org.apache.spark.ml.feature.VectorAssembler
+import org.apache.spark.ml.feature.{StandardScaler, VectorAssembler}
 
 object ClusteringEngine {
   def main(args: Array[String]): Unit = {
@@ -24,6 +24,17 @@ object ClusteringEngine {
       .setOutputCol("raw_features")
 
     val assembledDF = assembler.transform(summaryDF)
+
+    val scaler = new StandardScaler()
+      .setInputCol("raw_features")
+      .setOutputCol("features")
+      .setWithStd(true)
+      .setWithMean(true)
+
+    val scalerModel = scaler.fit(assembledDF)
+    val scaledDF = scalerModel.transform(assembledDF)
+
+    scaledDF.show(5)
 
     spark.stop()
   }
