@@ -36,6 +36,7 @@ object ClusteringEngine {
 
     val scalerModel = scaler.fit(assembledDF)
     val scaledDF = scalerModel.transform(assembledDF)
+    scaledDF.cache()
 
     scaledDF.show(5)
 
@@ -87,6 +88,8 @@ object ClusteringEngine {
       throw new IOException(s"Failed to write cohort assignments to ${outputFile.getPath}")
     }
 
+    println("\n[PAUSE] Press ENTER in the terminal to stop Spark and close Spark UI...")
+    scala.io.StdIn.readLine()
     spark.stop()
   }
 }
